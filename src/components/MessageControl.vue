@@ -297,7 +297,7 @@ export default defineComponent({
 			messageAttributes: [],
 			delaySeconds: 0
 		}
-		const defaultDialogMessageAttribute = (): NewSqsMessageAttribute => {
+		function defaultDialogMessageAttribute(): NewSqsMessageAttribute {
 			return {
 				name: '',
 				type: 'string',

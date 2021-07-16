@@ -62,6 +62,7 @@
 			2,
 			"global"
 		],
+		"no-tabs": "off",
 		"brace-style": 2,
 		"no-mixed-spaces-and-tabs": 2,
 		"key-spacing": 2,
@@ -189,18 +190,10 @@
 				"project": "./tsconfig.json"
 			},
 			"rules": {
+				"semi": "off",
+				"@typescript-eslint/semi": ["error"],
 				"object-curly-spacing": "off",
 				"@typescript-eslint/object-curly-spacing": ["error", "always"],
-				"@typescript-eslint/typedef": [
-					"error",
-					{
-						"files": [
-							"*.ts"
-						],
-						"arrowParameter": false,
-						"variableDeclaration": true
-					}
-				],
 				"@typescript-eslint/type-annotation-spacing": [
 					"error",
 					{

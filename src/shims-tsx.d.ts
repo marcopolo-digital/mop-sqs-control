@@ -1,6 +1,4 @@
-import Vue, type { VNode } from 'vue';
-
-
+import type Vue, { VNode } from 'vue'
 declare global {
   namespace JSX {
     // tslint:disable no-empty-interface
