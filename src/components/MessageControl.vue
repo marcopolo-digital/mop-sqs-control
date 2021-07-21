@@ -27,62 +27,51 @@
       <v-col cols="9" v-if="selectedQueue">
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.ApproximateNumberOfMessages }}
-          </v-avatar>
+          {{ selectedQueue.attributes.ApproximateNumberOfMessages }}
           Messages
         </v-chip>
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.ApproximateNumberOfMessagesDelayed }}
-          </v-avatar>
+          {{ selectedQueue.attributes.ApproximateNumberOfMessagesDelayed }}
           MessagesDelayed
         </v-chip>
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.ApproximateNumberOfMessagesNotVisible }}
-          </v-avatar>
+          {{ selectedQueue.attributes.ApproximateNumberOfMessagesNotVisible }}
           MessagesNotVisible
         </v-chip>
+        <br />
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.ReceiveMessageWaitTimeSeconds }}
-          </v-avatar>
+          {{ selectedQueue.attributes.ReceiveMessageWaitTimeSeconds }}
           ReceiveMessageWaitTimeSeconds
         </v-chip>
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.DelaySeconds }}
-          </v-avatar>
+          {{ selectedQueue.attributes.DelaySeconds }}
           DelaySeconds
         </v-chip>
         <v-chip
           class="ma-2"
-          color="green"
+          color="grey"
           text-color="white"
         >
-          <v-avatar left class="green darken-4">
-            {{ selectedQueue.attributes.VisibilityTimeout }}
-          </v-avatar>
+          {{ selectedQueue.attributes.VisibilityTimeout }}
           VisibilityTimeout
         </v-chip>
       </v-col>
