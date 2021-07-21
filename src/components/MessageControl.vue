@@ -1,15 +1,90 @@
 <template>
   <v-container fluid>
-    <v-row align="center">
-      <v-col class="d-flex" cols="12" sm="6">
+    <v-row>
+      <v-col class="d-flex" cols="3">
         <v-select
-          :items="sqsQueues"
+          :items="queueSelectItems"
           v-model="selectedQueueUrl"
           itemText="name"
           itemValue="url"
-          label="Choose SQS Queue"
+          label="Choose SQS Queue (Messages / Not Visible)"
           :loading="isLoadingQueues"
-        ></v-select>
+        >
+          <template #append-outer>
+            <v-btn
+              :loading="isLoadingQueues"
+              color="success"
+              @click="refreshQueues"
+            >
+              <v-icon>
+                mdi-refresh-circle
+              </v-icon>
+            </v-btn>
+          </template>
+        </v-select>
+
+      </v-col>
+      <v-col cols="9" v-if="selectedQueue">
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.ApproximateNumberOfMessages }}
+          </v-avatar>
+          Messages
+        </v-chip>
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.ApproximateNumberOfMessagesDelayed }}
+          </v-avatar>
+          MessagesDelayed
+        </v-chip>
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.ApproximateNumberOfMessagesNotVisible }}
+          </v-avatar>
+          MessagesNotVisible
+        </v-chip>
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.ReceiveMessageWaitTimeSeconds }}
+          </v-avatar>
+          ReceiveMessageWaitTimeSeconds
+        </v-chip>
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.DelaySeconds }}
+          </v-avatar>
+          DelaySeconds
+        </v-chip>
+        <v-chip
+          class="ma-2"
+          color="green"
+          text-color="white"
+        >
+          <v-avatar left class="green darken-4">
+            {{ selectedQueue.attributes.VisibilityTimeout }}
+          </v-avatar>
+          VisibilityTimeout
+        </v-chip>
       </v-col>
     </v-row>
     <v-row align="center">
@@ -144,8 +219,20 @@
               <v-icon left>
                 mdi-refresh-circle
               </v-icon>
-              Refresh Messages
+              Poll Messages
             </v-btn>
+            <v-text-field
+              v-model="pollSeconds"
+              type="number"
+              max="60"
+              min="1"
+              class="ml-5 mt-6"
+              style="max-width: 100px;"
+              label="Poll seconds"
+              outlined
+              dense
+              :disabled="isLoadingMessages"
+            ></v-text-field>
           </template>
         </v-data-table>
       </v-col>
@@ -267,14 +354,16 @@
 <script lang="ts">
 import {
 	computed,
+	ComputedRef,
 	defineComponent,
 	onMounted,
 	ref,
 	watch
 } from '@vue/composition-api'
-import { createMessage, deleteMessage, getMessages, getQueues, moveMessage, purgeQueue } from '../modules/sqsClient'
+import { createMessage, deleteMessage, getQueues, moveMessage, pollMessages, purgeQueue } from '../modules/sqsClient'
 import { AwsQueue, NewSqsMessage, NewSqsMessageAttribute } from '../types/aws'
 import { Message } from '@aws-sdk/client-sqs'
+import { currentRegionRef } from '@/modules/awsConfig'
 
 export default defineComponent({
 	setup() {
@@ -291,6 +380,7 @@ export default defineComponent({
 		const sqsQueues = ref<AwsQueue[]>([])
 		const showError = ref(false)
 		const errorMessage = ref<string>('')
+		const pollSeconds = ref<number>(5)
 
 		const defaultDialogMessage: NewSqsMessage = {
 			body: '',
@@ -333,7 +423,9 @@ export default defineComponent({
 		async function refreshMessages() {
 			isLoadingMessages.value = true
 			if (selectedQueueUrl.value) {
-				messages.value = await getMessages(selectedQueueUrl.value)
+				messages.value = await pollMessages(selectedQueueUrl.value, pollSeconds.value)
+			} else {
+				messages.value = []
 			}
 			isLoadingMessages.value = false
 		}
@@ -341,6 +433,9 @@ export default defineComponent({
 		async function refreshQueues() {
 			isLoadingQueues.value = true
 			sqsQueues.value = await getQueues()
+			if (!sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)) {
+				selectedQueueUrl.value = null
+			}
 			isLoadingQueues.value = false
 		}
 
@@ -348,18 +443,22 @@ export default defineComponent({
 			refreshQueues()
 		})
 
+		watch(currentRegionRef, async () => {
+			refreshQueues()
+		})
+
+		selectedQueueUrl.value = localStorage.getItem('selectedQueueUrl')
+
 		watch(selectedQueueUrl, async () => {
 			if (selectedQueueUrl.value) {
 				localStorage.setItem('selectedQueueUrl', selectedQueueUrl.value)
-				refreshMessages()
 			}
+			refreshMessages()
 		})
 
 		const messageText = computed(() => {
 			return selectedMessages.value.length === 1 ? 'Message' : 'Messages'
 		})
-
-		selectedQueueUrl.value = localStorage.getItem('selectedQueueUrl')
 
 		async function btnPurgeQueue() {
 			isLoadingPurgeButton.value = true
@@ -394,17 +493,16 @@ export default defineComponent({
 		async function btnMoveMessages(destinationQueue: AwsQueue): Promise<void> {
 			isLoadingMoveButton.value = true
 
-			await Promise.all(selectedMessages.value.map(async (messageToMove) => {
+			await Promise.all(selectedMessages.value.map(async (messageToMove: Message) => {
 				try {
 					if (selectedQueueUrl.value) {
 						await moveMessage(selectedQueueUrl.value, destinationQueue.url, messageToMove)
+						removeMessagesFromList([messageToMove])
 					}
 				} catch (error) {
 					console.log(error)
 				}
 			}))
-
-			// await purgeQueue(selectedQueueUrl.value)
 			isLoadingMoveButton.value = false
 		}
 
@@ -437,6 +535,20 @@ export default defineComponent({
 			return `${date.toLocaleString()} (${date.toISOString()})`
 		}
 
+		const selectedQueue: ComputedRef<AwsQueue | undefined> = computed(() => {
+			if (selectedQueueUrl.value) {
+				return sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)
+			}
+		})
+
+		const queueSelectItems = computed(() => {
+			return sqsQueues.value.map((queue) => {
+				const { ApproximateNumberOfMessages, ApproximateNumberOfMessagesNotVisible } = queue.attributes
+				queue.name += ` (${ApproximateNumberOfMessages}/${ApproximateNumberOfMessagesNotVisible})`
+				return queue
+			})
+		})
+
 		return {
 			btnCreateNewMessage,
 			btnDeleteMessages,
@@ -456,11 +568,15 @@ export default defineComponent({
 			messageTableHeaders,
 			messageText,
 			messages,
+			pollSeconds,
 			refreshMessages,
+			refreshQueues,
 			selectedMessages,
 			selectedQueueUrl,
+			selectedQueue,
 			sqsQueues,
 			showError,
+			queueSelectItems,
 			isJson
 		}
 	}

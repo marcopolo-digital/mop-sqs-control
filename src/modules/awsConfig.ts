@@ -10,9 +10,11 @@ export const defaultAwsCredentials: AwsCredentials = {
 export const isAuthenticatedRef = ref<boolean>();
 export const currentRegionRef = ref<string>();
 export const awsCredentialsRef = ref<AwsCredentials>();
+export const awsAccountIdRef = ref<string>();
 
 watch(isAuthenticatedRef, (value) => {
 	if (value === false) {
+		awsAccountIdRef.value = '';
 		awsCredentialsRef.value = defaultAwsCredentials;
 	}
 	localStorage.setItem('isAuthenticated', String(value));
@@ -24,15 +26,28 @@ watch(currentRegionRef, (value) => {
 	}
 });
 
+const awsCredentialsCache: string | null = localStorage.getItem('awsCredentials');
+awsCredentialsRef.value = awsCredentialsCache ? JSON.parse(awsCredentialsCache) : defaultAwsCredentials;
+
 watch(awsCredentialsRef, (value) => {
-	localStorage.setItem('awsCredentials', JSON.stringify(value));
+	if (awsCredentialsRef.value !== undefined) {
+		localStorage.setItem('awsCredentials', JSON.stringify(value));
+	}
+}, {
+	deep: true
+});
+
+watch(awsAccountIdRef, (value) => {
+	if (value !== undefined) {
+		localStorage.setItem('awsAccountId', value);
+	}
 });
 
 const isAuthenticatedCache: string | null = localStorage.getItem('isAuthenticated');
-isAuthenticatedRef.value = isAuthenticatedCache !== null ? Boolean(isAuthenticatedCache) : false;
+isAuthenticatedRef.value = isAuthenticatedCache === 'true';
 
 const currentRegionCache: string | null = localStorage.getItem('currentRegion');
 currentRegionRef.value = currentRegionCache ?? 'eu-central-1';
 
-const awsCredentialsCache: string | null = localStorage.getItem('awsCredentials');
-awsCredentialsRef.value = awsCredentialsCache ? JSON.parse(awsCredentialsCache) : defaultAwsCredentials;
+const awsAccountIdCache: string | null = localStorage.getItem('awsAccountId');
+awsAccountIdRef.value = awsAccountIdCache ?? '';

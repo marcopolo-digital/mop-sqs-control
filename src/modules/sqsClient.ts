@@ -1,6 +1,7 @@
-import type { AwsQueue, NewSqsMessage } from '@/types/aws';
+import type { AwsQueue, AwsQueueAttributes, NewSqsMessage } from '@/types/aws';
 import type { Message } from '@aws-sdk/client-sqs';
-import { SQSClient, ListQueuesCommand, ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { GetQueueAttributesCommand, SQSClient, ListQueuesCommand, ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
+
 import { awsCredentialsRef, currentRegionRef, isAuthenticatedRef } from '../modules/awsConfig';
 
 function getSqsClient(): SQSClient {
@@ -21,21 +22,39 @@ export async function getQueues(): Promise<AwsQueue[]> {
 			return [];
 		}
 
-		return queuesResponse.QueueUrls.map((queueUrl) => {
+		return Promise.all(queuesResponse.QueueUrls.map(async (queueUrl): Promise<AwsQueue> => {
 			const queueParts = queueUrl.split('/');
 
 			return {
 				url: queueUrl,
 				accountNumber: queueParts[3],
-				name: queueParts[4]
+				name: queueParts[4],
+				attributes: await getQueueAttributes(queueUrl)
 			};
-		});
+		}));
 	} catch (error) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
 		return [];
 	}
+}
+
+export async function pollMessages(queueUrl: string, durationSeconds: number): Promise<Message[]> {
+	const stopDate = new Date();
+	stopDate.setSeconds(stopDate.getSeconds() + Number(durationSeconds));
+
+	const receiptHandles: string[] = [];
+	const messages: Message[] = [];
+	do {
+		const newMessages = await getMessages(queueUrl);
+		newMessages.forEach((message) => {
+			if (!receiptHandles.includes(message.ReceiptHandle as string)) {
+				messages.push(message);
+			}
+		});
+	} while (new Date() < stopDate);
+	return messages;
 }
 
 export async function getMessages(queueUrl: string): Promise<Message[]> {
@@ -71,7 +90,13 @@ export async function purgeQueue(queueUrl: string): Promise<void> {
 	const command = new PurgeQueueCommand({
 		QueueUrl: queueUrl
 	});
-	await client.send(command);
+	try {
+		await client.send(command);
+	} catch (error) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+	}
 }
 
 export async function deleteMessage(queueUrl: string, receiptHandle: string): Promise<void> {
@@ -80,7 +105,13 @@ export async function deleteMessage(queueUrl: string, receiptHandle: string): Pr
 		QueueUrl: queueUrl,
 		ReceiptHandle: receiptHandle
 	});
-	await client.send(command);
+	try {
+		await client.send(command);
+	} catch (error) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+	}
 }
 
 export async function createMessage(queueUrl: string, message: NewSqsMessage): Promise<void> {
@@ -98,7 +129,13 @@ export async function createMessage(queueUrl: string, message: NewSqsMessage): P
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}, {} as any)
 	});
-	await client.send(command);
+	try {
+		await client.send(command);
+	} catch (error) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+	}
 }
 
 export async function moveMessage(sourceQueueUrl: string, destinationQueueUrl: string, sourceMessage: Message): Promise<void> {
@@ -108,6 +145,29 @@ export async function moveMessage(sourceQueueUrl: string, destinationQueueUrl: s
 		MessageBody: sourceMessage.Body,
 		MessageAttributes: sourceMessage.MessageAttributes
 	});
-	await client.send(command);
+	try {
+		await client.send(command);
+	} catch (error) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+	}
 	await deleteMessage(sourceQueueUrl, sourceMessage.ReceiptHandle as string);
+}
+
+export async function getQueueAttributes(queueUrl: string): Promise<AwsQueueAttributes> {
+	const client = getSqsClient();
+	const command = new GetQueueAttributesCommand({
+		QueueUrl: queueUrl,
+		AttributeNames: ['All']
+	});
+	try {
+		const response = await client.send(command);
+		return response.Attributes as AwsQueueAttributes;
+	} catch (error) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+		throw error;
+	}
 }

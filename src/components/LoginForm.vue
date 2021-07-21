@@ -4,39 +4,40 @@
     elevation="4"
     class="loginCard"
   >
-    <v-form
-      ref="form"
-      lazy-validation
-    >
-      <v-select
+    <v-form>
+      <v-combobox
         :items="Object.keys(awsRegions)"
         v-model="currentRegionRef"
         label="defaultRegion"
         required
-      ></v-select>
+        clearable
+      ></v-combobox>
 
       <v-text-field
         v-model="credentialsRef.accessKeyId"
         label="accessKeyId"
         required
+        clearable
       ></v-text-field>
 
       <v-text-field
         v-model="credentialsRef.secretAccessKey"
         label="secretAccessKey"
         required
+        clearable
       ></v-text-field>
 
       <v-text-field
         v-model="credentialsRef.sessionToken"
         label="sessionToken"
-        required
+        clearable
       ></v-text-field>
 
       <v-btn
         color="success"
         class="mr-4"
         @click="checkCredentials"
+        :loading="isLoadingLoginButton"
       >
         Validate & Save
       </v-btn>
@@ -58,16 +59,18 @@
 
 import { defineComponent, ref } from '@vue/composition-api'
 import awsRegions from '../modules/awsRegions'
-import { currentRegionRef, isAuthenticatedRef, defaultAwsCredentials, awsCredentialsRef } from '../modules/awsConfig'
+import { currentRegionRef, defaultAwsCredentials, awsAccountIdRef, isAuthenticatedRef, awsCredentialsRef } from '../modules/awsConfig'
 import { GetAccessKeyInfoCommand, STSClient } from '@aws-sdk/client-sts'
 import { AwsCredentials } from '../types/aws'
 
 export default defineComponent({
 	setup() {
 		const showError = ref(false)
-		const credentialsRef = ref<AwsCredentials>(defaultAwsCredentials)
+		const credentialsRef = ref<AwsCredentials>(Object.assign({}, defaultAwsCredentials))
+		const isLoadingLoginButton = ref<boolean>(false)
 
 		async function checkCredentials() {
+			isLoadingLoginButton.value = true
 			const stsClient = new STSClient({
 				region: currentRegionRef.value,
 				credentials: credentialsRef.value
@@ -76,13 +79,16 @@ export default defineComponent({
 				AccessKeyId: credentialsRef.value.accessKeyId
 			})
 			try {
-				await stsClient.send(stsCommand)
+				const stsResult = await stsClient.send(stsCommand)
 				awsCredentialsRef.value = credentialsRef.value
-				localStorage.setItem('awsCredentials', JSON.stringify(awsCredentialsRef.value))
+				awsAccountIdRef.value = stsResult.Account
+				credentialsRef.value = defaultAwsCredentials
 				isAuthenticatedRef.value = true
 			} catch (error) {
+				console.log(error)
 				showError.value = true
 			}
+			isLoadingLoginButton.value = false
 		}
 
 		return {
@@ -90,7 +96,8 @@ export default defineComponent({
 			awsRegions,
 			currentRegionRef,
 			showError,
-			credentialsRef
+			credentialsRef,
+			isLoadingLoginButton
 		}
 	}
 })
