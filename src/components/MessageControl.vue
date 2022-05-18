@@ -494,7 +494,7 @@ export default defineComponent({
 			let numberOfProcessedItems = 0;
 			progressBarPercent.value = 0;
 			const numberOfItems = selectedMessages.value.length;
-			const currentExecutions = 4;
+			const currentExecutions = 20;
 
 			while (selectedMessages.value.length > 0) {
 				const executionItems = selectedMessages.value.slice(0, currentExecutions);
