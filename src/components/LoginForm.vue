@@ -57,38 +57,38 @@
 
 <script lang="ts">
 
-import { defineComponent, ref } from '@vue/composition-api'
-import awsRegions from '../modules/awsRegions'
-import { currentRegionRef, defaultAwsCredentials, awsAccountIdRef, isAuthenticatedRef, awsCredentialsRef } from '../modules/awsConfig'
-import { GetAccessKeyInfoCommand, STSClient } from '@aws-sdk/client-sts'
-import { AwsCredentials } from '../types/aws'
+import { defineComponent, ref } from '@vue/composition-api';
+import awsRegions from '../modules/awsRegions';
+import { currentRegionRef, defaultAwsCredentials, awsAccountIdRef, isAuthenticatedRef, awsCredentialsRef } from '../modules/awsConfig';
+import { GetAccessKeyInfoCommand, STSClient } from '@aws-sdk/client-sts';
+import type { AwsCredentials } from '../types/aws';
 
 export default defineComponent({
 	setup() {
-		const showError = ref(false)
-		const credentialsRef = ref<AwsCredentials>(Object.assign({}, defaultAwsCredentials))
-		const isLoadingLoginButton = ref<boolean>(false)
+		const showError = ref(false);
+		const credentialsRef = ref<AwsCredentials>(Object.assign({}, defaultAwsCredentials));
+		const isLoadingLoginButton = ref<boolean>(false);
 
-		async function checkCredentials() {
-			isLoadingLoginButton.value = true
+		async function checkCredentials(): Promise<void> {
+			isLoadingLoginButton.value = true;
 			const stsClient = new STSClient({
 				region: currentRegionRef.value,
 				credentials: credentialsRef.value
-			})
+			});
 			const stsCommand = new GetAccessKeyInfoCommand({
 				AccessKeyId: credentialsRef.value.accessKeyId
-			})
+			});
 			try {
-				const stsResult = await stsClient.send(stsCommand)
-				awsCredentialsRef.value = credentialsRef.value
-				awsAccountIdRef.value = stsResult.Account
-				credentialsRef.value = defaultAwsCredentials
-				isAuthenticatedRef.value = true
+				const stsResult = await stsClient.send(stsCommand);
+				awsCredentialsRef.value = credentialsRef.value;
+				awsAccountIdRef.value = stsResult.Account;
+				credentialsRef.value = defaultAwsCredentials;
+				isAuthenticatedRef.value = true;
 			} catch (error) {
-				console.log(error)
-				showError.value = true
+				console.log(error);
+				showError.value = true;
 			}
-			isLoadingLoginButton.value = false
+			isLoadingLoginButton.value = false;
 		}
 
 		return {
@@ -98,9 +98,9 @@ export default defineComponent({
 			showError,
 			credentialsRef,
 			isLoadingLoginButton
-		}
+		};
 	}
-})
+});
 
 </script>
 

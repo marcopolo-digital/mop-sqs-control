@@ -32,7 +32,7 @@ export async function getQueues(): Promise<AwsQueue[]> {
 				attributes: await getQueueAttributes(queueUrl)
 			};
 		}));
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -77,7 +77,7 @@ export async function getMessages(queueUrl: string): Promise<Message[]> {
 		}
 
 		return messagesResponse.Messages;
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -92,7 +92,7 @@ export async function purgeQueue(queueUrl: string): Promise<void> {
 	});
 	try {
 		await client.send(command);
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -107,7 +107,7 @@ export async function deleteMessage(queueUrl: string, receiptHandle: string): Pr
 	});
 	try {
 		await client.send(command);
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -131,7 +131,7 @@ export async function createMessage(queueUrl: string, message: NewSqsMessage): P
 	});
 	try {
 		await client.send(command);
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -147,7 +147,7 @@ export async function moveMessage(sourceQueueUrl: string, destinationQueueUrl: s
 	});
 	try {
 		await client.send(command);
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
@@ -164,7 +164,7 @@ export async function getQueueAttributes(queueUrl: string): Promise<AwsQueueAttr
 	try {
 		const response = await client.send(command);
 		return response.Attributes as AwsQueueAttributes;
-	} catch (error) {
+	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}

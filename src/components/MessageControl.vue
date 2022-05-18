@@ -22,55 +22,30 @@
             </v-btn>
           </template>
         </v-select>
-
       </v-col>
       <v-col cols="9" v-if="selectedQueue">
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.ApproximateNumberOfMessages }}
           Messages
         </v-chip>
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.ApproximateNumberOfMessagesDelayed }}
           MessagesDelayed
         </v-chip>
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.ApproximateNumberOfMessagesNotVisible }}
           MessagesNotVisible
         </v-chip>
         <br />
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.ReceiveMessageWaitTimeSeconds }}
           ReceiveMessageWaitTimeSeconds
         </v-chip>
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.DelaySeconds }}
           DelaySeconds
         </v-chip>
-        <v-chip
-          class="ma-2"
-          color="grey"
-          text-color="white"
-        >
+        <v-chip class="ma-2" color="grey" text-color="white">
           {{ selectedQueue.attributes.VisibilityTimeout }}
           VisibilityTimeout
         </v-chip>
@@ -91,37 +66,42 @@
           <template #[`item.Attributes`]="{ item }">
             <v-list-item
               two-line
-              v-for="(key) of ['ApproximateReceiveCount', 'SenderId']"
+              v-for="key of ['ApproximateReceiveCount', 'SenderId']"
               :key="key"
             >
               <v-list-item-content>
                 <v-list-item-title>{{ key }}</v-list-item-title>
-                <v-list-item-subtitle>{{ item.Attributes[key] }}</v-list-item-subtitle>
+                <v-list-item-subtitle>{{
+                  item.Attributes[key]
+                }}</v-list-item-subtitle>
               </v-list-item-content>
             </v-list-item>
           </template>
           <template #[`item.DateAttributes`]="{ item }">
             <v-list-item
               two-line
-              v-for="(key) of ['ApproximateFirstReceiveTimestamp', 'SentTimestamp']"
+              v-for="key of [
+                'ApproximateFirstReceiveTimestamp',
+                'SentTimestamp'
+              ]"
               :key="key"
             >
               <v-list-item-content>
                 <v-list-item-title>{{ key }}</v-list-item-title>
-                <v-list-item-subtitle>{{ formatDateAttribute(item.Attributes[key]) }}</v-list-item-subtitle>
+                <v-list-item-subtitle>{{
+                  formatDateAttribute(item.Attributes[key])
+                }}</v-list-item-subtitle>
               </v-list-item-content>
             </v-list-item>
           </template>
           <template #[`item.MessageAttributes`]="{ value }">
             <template v-if="value">
-              <v-list-item
-                two-line
-                v-for="(attr, key) of value"
-                :key="key"
-              >
+              <v-list-item two-line v-for="(attr, key) of value" :key="key">
                 <v-list-item-content>
                   <v-list-item-title>{{ key }}</v-list-item-title>
-                  <v-list-item-subtitle>{{ attr.StringValue }}</v-list-item-subtitle>
+                  <v-list-item-subtitle>{{
+                    attr.StringValue
+                  }}</v-list-item-subtitle>
                 </v-list-item-content>
               </v-list-item>
             </template>
@@ -169,9 +149,9 @@
                   :key="index"
                   link
                 >
-                  <v-list-item-title
-                    @click="btnMoveMessages(queue)"
-                  >{{ queue.name }}</v-list-item-title>
+                  <v-list-item-title @click="btnMoveMessages(queue)">{{
+                    queue.name
+                  }}</v-list-item-title>
                 </v-list-item>
               </v-list>
             </v-menu>
@@ -226,10 +206,7 @@
         </v-data-table>
       </v-col>
     </v-row>
-    <v-dialog
-      v-model="isCreateDialogOpen"
-      max-width="1000px"
-    >
+    <v-dialog v-model="isCreateDialogOpen" max-width="1000px">
       <v-card>
         <v-card-title>
           <span class="text-h5">Create Message</span>
@@ -297,7 +274,11 @@
           <v-btn
             text
             color="primary"
-            @click="dialogMessage.messageAttributes.push(defaultDialogMessageAttribute())"
+            @click="
+              dialogMessage.messageAttributes.push(
+                defaultDialogMessageAttribute()
+              )
+            "
           >
             <v-icon left>
               mdi-plus-circle
@@ -305,10 +286,7 @@
             Add Message Attribute
           </v-btn>
           <v-spacer></v-spacer>
-          <v-btn
-            text
-            @click="isCreateDialogOpen = false"
-          >
+          <v-btn text @click="isCreateDialogOpen = false">
             <v-icon left>
               mdi-close-circle
             </v-icon>
@@ -329,62 +307,81 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-snackbar
-      :timeout="5000"
-      v-model="showError"
-      color="red"
-      top
-    >
+    <v-snackbar :timeout="5000" v-model="showError" color="red" top>
       {{ errorMessage }}
     </v-snackbar>
+    <v-dialog v-model="isProgressBarActive" width="500">
+      <v-card>
+        <v-card-title class="text-h5 grey lighten-2">
+          Execution in Progress
+        </v-card-title>
+
+        <v-progress-linear :value="progressBarPercent" height="25">
+          <template v-slot:default="{ value }">
+            <strong>{{ Math.ceil(value) }}%</strong>
+          </template>
+        </v-progress-linear>
+
+        <v-divider></v-divider>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts">
+import type { ComputedRef } from '@vue/composition-api';
 import {
 	computed,
-	ComputedRef,
 	defineComponent,
 	onMounted,
 	ref,
 	watch
-} from '@vue/composition-api'
-import { createMessage, deleteMessage, getQueues, moveMessage, pollMessages, purgeQueue } from '../modules/sqsClient'
-import { AwsQueue, NewSqsMessage, NewSqsMessageAttribute } from '../types/aws'
-import { Message } from '@aws-sdk/client-sqs'
-import { currentRegionRef } from '@/modules/awsConfig'
+} from '@vue/composition-api';
+import {
+	createMessage,
+	deleteMessage,
+	getQueues,
+	moveMessage,
+	pollMessages,
+	purgeQueue
+} from '../modules/sqsClient';
+import type { AwsQueue, NewSqsMessage, NewSqsMessageAttribute } from '../types/aws';
+import type { Message } from '@aws-sdk/client-sqs';
+import { currentRegionRef } from '@/modules/awsConfig';
 
 export default defineComponent({
 	setup() {
-		const isLoadingDeleteButton = ref<boolean>(false)
-		const isLoadingMoveButton = ref<boolean>(false)
-		const isLoadingPurgeButton = ref<boolean>(false)
-		const isLoadingCreateMessageButton = ref<boolean>(false)
-		const isLoadingMessages = ref<boolean>(false)
-		const isLoadingQueues = ref<boolean>(true)
-		const isCreateDialogOpen = ref<boolean>(false)
-		const messages = ref<Message[]>([])
-		const selectedMessages = ref<Message[]>([])
-		const selectedQueueUrl = ref<string | null>(null)
-		const sqsQueues = ref<AwsQueue[]>([])
-		const showError = ref(false)
-		const errorMessage = ref<string>('')
-		const pollSeconds = ref<number>(5)
+		const isLoadingDeleteButton = ref<boolean>(false);
+		const isLoadingMoveButton = ref<boolean>(false);
+		const isLoadingPurgeButton = ref<boolean>(false);
+		const isLoadingCreateMessageButton = ref<boolean>(false);
+		const isLoadingMessages = ref<boolean>(false);
+		const isLoadingQueues = ref<boolean>(true);
+		const isCreateDialogOpen = ref<boolean>(false);
+		const messages = ref<Message[]>([]);
+		const selectedMessages = ref<Message[]>([]);
+		const selectedQueueUrl = ref<string | null>(null);
+		const sqsQueues = ref<AwsQueue[]>([]);
+		const showError = ref(false);
+		const errorMessage = ref<string>('');
+		const pollSeconds = ref<number>(5);
+		const isProgressBarActive = ref<boolean>(false);
+		const progressBarPercent = ref<number>(0);
 
 		const defaultDialogMessage: NewSqsMessage = {
 			body: '',
 			messageAttributes: [],
 			delaySeconds: 0
-		}
+		};
 		function defaultDialogMessageAttribute(): NewSqsMessageAttribute {
 			return {
 				name: '',
 				type: 'string',
 				value: '',
 				id: new Date().toISOString()
-			}
+			};
 		}
-		const dialogMessage = ref<NewSqsMessage>(defaultDialogMessage)
+		const dialogMessage = ref<NewSqsMessage>(defaultDialogMessage);
 
 		const messageTableHeaders = [
 			{
@@ -407,136 +404,162 @@ export default defineComponent({
 				text: 'MD5OfBody',
 				value: 'MD5OfBody'
 			}
-		]
+		];
 
-		async function refreshMessages() {
-			isLoadingMessages.value = true
+		async function refreshMessages(): Promise<void> {
+			isLoadingMessages.value = true;
 			if (selectedQueueUrl.value) {
-				messages.value = await pollMessages(selectedQueueUrl.value, pollSeconds.value)
+				messages.value = await pollMessages(
+					selectedQueueUrl.value,
+					pollSeconds.value
+				);
 			} else {
-				messages.value = []
+				messages.value = [];
 			}
-			isLoadingMessages.value = false
+			isLoadingMessages.value = false;
 		}
 
-		async function refreshQueues() {
-			isLoadingQueues.value = true
-			sqsQueues.value = await getQueues()
-			if (!sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)) {
-				selectedQueueUrl.value = null
+		async function refreshQueues(): Promise<void> {
+			isLoadingQueues.value = true;
+			sqsQueues.value = await getQueues();
+			if (
+				!sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)
+			) {
+				selectedQueueUrl.value = null;
 			}
-			isLoadingQueues.value = false
+			isLoadingQueues.value = false;
 		}
 
 		onMounted(async () => {
-			refreshQueues()
-		})
+			refreshQueues();
+		});
 
 		watch(currentRegionRef, async () => {
-			refreshQueues()
-		})
+			refreshQueues();
+		});
 
-		selectedQueueUrl.value = localStorage.getItem('selectedQueueUrl')
+		selectedQueueUrl.value = localStorage.getItem('selectedQueueUrl');
 
 		watch(selectedQueueUrl, async () => {
 			if (selectedQueueUrl.value) {
-				localStorage.setItem('selectedQueueUrl', selectedQueueUrl.value)
+				localStorage.setItem('selectedQueueUrl', selectedQueueUrl.value);
 			}
-			refreshMessages()
-		})
+			refreshMessages();
+		});
 
 		const messageText = computed(() => {
-			return selectedMessages.value.length === 1 ? 'Message' : 'Messages'
-		})
+			return selectedMessages.value.length === 1 ? 'Message' : 'Messages';
+		});
 
-		async function btnPurgeQueue() {
-			isLoadingPurgeButton.value = true
+		async function btnPurgeQueue(): Promise<void> {
+			isLoadingPurgeButton.value = true;
 			if (selectedQueueUrl.value) {
-				await purgeQueue(selectedQueueUrl.value)
-				refreshMessages()
+				await purgeQueue(selectedQueueUrl.value);
+				refreshMessages();
 			}
-			isLoadingPurgeButton.value = false
+			isLoadingPurgeButton.value = false;
 		}
 
 		function removeMessagesFromList(messagesToRemove: Message[]): void {
 			messages.value = messages.value.reduce((result, message) => {
-				if (!messagesToRemove.some((messagesToRemove) => messagesToRemove.ReceiptHandle === message.ReceiptHandle)) {
-					result.push(message)
+				if (
+					!messagesToRemove.some(
+						(messagesToRemove) =>
+							messagesToRemove.ReceiptHandle === message.ReceiptHandle
+					)
+				) {
+					result.push(message);
 				}
-				return result
-			}, [] as Message[])
+				return result;
+			}, [] as Message[]);
 		}
 
-		async function btnDeleteMessages() {
+		async function btnDeleteMessages(): Promise<void> {
 			if (selectedQueueUrl.value) {
-				const queueUrl = selectedQueueUrl.value
-				isLoadingDeleteButton.value = true
-				await Promise.all(selectedMessages.value.map(async (message) => {
-					await deleteMessage(queueUrl, message.ReceiptHandle as string)
-				}))
-				removeMessagesFromList(selectedMessages.value)
-				isLoadingDeleteButton.value = false
+				const queueUrl = selectedQueueUrl.value;
+				isLoadingDeleteButton.value = true;
+				await Promise.all(
+					selectedMessages.value.map(async (message) => {
+						await deleteMessage(queueUrl, message.ReceiptHandle as string);
+					})
+				);
+				removeMessagesFromList(selectedMessages.value);
+				isLoadingDeleteButton.value = false;
 			}
 		}
 
 		async function btnMoveMessages(destinationQueue: AwsQueue): Promise<void> {
-			isLoadingMoveButton.value = true
+			isLoadingMoveButton.value = true;
+			isProgressBarActive.value = true;
+			let numberOfProcessedItems = 0;
+			progressBarPercent.value = 0;
+			const numberOfItems = selectedMessages.value.length;
+			const currentExecutions = 4;
 
-			await Promise.all(selectedMessages.value.map(async (messageToMove: Message) => {
-				try {
-					if (selectedQueueUrl.value) {
-						await moveMessage(selectedQueueUrl.value, destinationQueue.url, messageToMove)
-						removeMessagesFromList([messageToMove])
-					}
-				} catch (error) {
-					console.log(error)
-				}
-			}))
-			isLoadingMoveButton.value = false
+			while (selectedMessages.value.length > 0) {
+				const executionItems = selectedMessages.value.slice(0, currentExecutions);
+				executionItems.forEach(() => selectedMessages.value.shift());
+
+				await Promise.all(
+					executionItems.map(async (message) => {
+						await moveMessage(selectedQueueUrl.value!, destinationQueue.url, message);
+						removeMessagesFromList([message]);
+						numberOfProcessedItems++;
+						progressBarPercent.value = numberOfProcessedItems / numberOfItems * 100;
+					})
+				);
+			}
+			isProgressBarActive.value = false;
+			isLoadingMoveButton.value = false;
 		}
 
-		async function btnCreateNewMessage() {
-			isLoadingCreateMessageButton.value = true
+		async function btnCreateNewMessage(): Promise<void> {
+			isLoadingCreateMessageButton.value = true;
 			if (selectedQueueUrl.value) {
 				try {
-					await createMessage(selectedQueueUrl.value, dialogMessage.value)
-					isCreateDialogOpen.value = false
-					refreshMessages()
+					await createMessage(selectedQueueUrl.value, dialogMessage.value);
+					isCreateDialogOpen.value = false;
+					refreshMessages();
 				} catch (error) {
-					errorMessage.value = error.toString()
-					showError.value = true
+					errorMessage.value = error.toString();
+					showError.value = true;
 				}
 			}
-			isLoadingCreateMessageButton.value = false
+			isLoadingCreateMessageButton.value = false;
 		}
 
 		function isJson(text: string): boolean {
 			try {
-				JSON.parse(text)
-				return true
+				JSON.parse(text);
+				return true;
 			} catch (error) {
-				return false
+				return false;
 			}
 		}
 
 		function formatDateAttribute(value: string): string {
-			const date = new Date(Number(value))
-			return `${date.toLocaleString()} (${date.toISOString()})`
+			const date = new Date(Number(value));
+			return `${date.toLocaleString()} (${date.toISOString()})`;
 		}
 
 		const selectedQueue: ComputedRef<AwsQueue | undefined> = computed(() => {
 			if (selectedQueueUrl.value) {
-				return sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)
+				return sqsQueues.value.find(
+					(queue) => queue.url === selectedQueueUrl.value
+				);
 			}
-		})
+		});
 
 		const queueSelectItems = computed(() => {
 			return sqsQueues.value.map((queue) => {
-				const { ApproximateNumberOfMessages, ApproximateNumberOfMessagesNotVisible } = queue.attributes
-				queue.name += ` (${ApproximateNumberOfMessages}/${ApproximateNumberOfMessagesNotVisible})`
-				return queue
-			})
-		})
+				const {
+					ApproximateNumberOfMessages,
+					ApproximateNumberOfMessagesNotVisible
+				} = queue.attributes;
+				queue.name += ` (${ApproximateNumberOfMessages}/${ApproximateNumberOfMessagesNotVisible})`;
+				return queue;
+			});
+		});
 
 		return {
 			btnCreateNewMessage,
@@ -566,8 +589,10 @@ export default defineComponent({
 			sqsQueues,
 			showError,
 			queueSelectItems,
-			isJson
-		}
+			isJson,
+			isProgressBarActive,
+			progressBarPercent
+		};
 	}
-})
+});
 </script>

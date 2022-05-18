@@ -53,11 +53,11 @@
 </template>
 
 <script lang="ts">
-import LoginForm from './components/LoginForm.vue'
-import MessageControl from './components/MessageControl.vue'
-import { defineComponent } from '@vue/composition-api'
-import { isAuthenticatedRef, awsAccountIdRef, currentRegionRef, awsCredentialsRef, defaultAwsCredentials } from './modules/awsConfig'
-import awsRegions from './modules/awsRegions'
+import LoginForm from './components/LoginForm.vue';
+import MessageControl from './components/MessageControl.vue';
+import { defineComponent } from '@vue/composition-api';
+import { isAuthenticatedRef, awsAccountIdRef, currentRegionRef, awsCredentialsRef, defaultAwsCredentials } from './modules/awsConfig';
+import awsRegions from './modules/awsRegions';
 
 export default defineComponent({
 	name: 'SQSControl',
@@ -67,9 +67,9 @@ export default defineComponent({
 	},
 	setup() {
 		function logout() {
-			localStorage.removeItem('awsCredentials')
-			awsCredentialsRef.value = defaultAwsCredentials
-			isAuthenticatedRef.value = false
+			localStorage.removeItem('awsCredentials');
+			awsCredentialsRef.value = defaultAwsCredentials;
+			isAuthenticatedRef.value = false;
 		}
 
 		return {
@@ -78,8 +78,8 @@ export default defineComponent({
 			awsAccountIdRef,
 			currentRegionRef,
 			logout
-		}
+		};
 	}
 
-})
+});
 </script>

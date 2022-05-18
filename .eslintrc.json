@@ -184,7 +184,8 @@
 	"overrides": [
 		{
 			"files": [
-				"*.ts"
+				"*.ts",
+				"*.vue"
 			],
 			"parserOptions": {
 				"project": "./tsconfig.json"
@@ -235,7 +236,8 @@
 				],
 				"@typescript-eslint/promise-function-async": [
 					"error"
-				]
+				],
+				"@typescript-eslint/no-non-null-assertion": "off"
 			}
 		}
 	]
