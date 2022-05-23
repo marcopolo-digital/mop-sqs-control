@@ -1,6 +1,9 @@
+/* eslint-disable no-unused-expressions */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable id-length */
 import type { AwsQueue, AwsQueueAttributes, NewSqsMessage } from '@/types/aws';
 import type { Message } from '@aws-sdk/client-sqs';
-import { GetQueueAttributesCommand, SQSClient, ListQueuesCommand, ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { DeleteMessageBatchCommand, SendMessageBatchCommand, GetQueueAttributesCommand, SQSClient, ListQueuesCommand, ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
 
 import { awsCredentialsRef, currentRegionRef, isAuthenticatedRef } from '../modules/awsConfig';
 
@@ -147,12 +150,56 @@ export async function moveMessage(sourceQueueUrl: string, destinationQueueUrl: s
 	});
 	try {
 		await client.send(command);
+		await deleteMessage(sourceQueueUrl, sourceMessage.ReceiptHandle as string);
 	} catch (error: any) {
 		if (error.name === 'ExpiredToken') {
 			isAuthenticatedRef.value = false;
 		}
 	}
-	await deleteMessage(sourceQueueUrl, sourceMessage.ReceiptHandle as string);
+}
+
+export async function moveMessageBatch(sourceQueueUrl: string, destinationQueueUrl: string, sourceMessages: Message[]): Promise<void> {
+	const client = getSqsClient();
+	const sendCommand = new SendMessageBatchCommand({
+		QueueUrl: destinationQueueUrl,
+		Entries: sourceMessages.map((message) => {
+			return {
+				MessageBody: message.Body,
+				Id: message.MessageId,
+				MessageAttributes: Object.entries(message.Attributes ?? {}).reduce((result, [attributeKey, attributeValue]) => {
+					result[attributeKey] = {
+						DataType: typeof attributeValue === 'number' ? 'Number' : 'String',
+						StringValue: attributeValue
+					};
+					return result;
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				}, {} as any)
+			};
+		})
+	});
+	try {
+		const sendResult = await client.send(sendCommand);
+		sendResult.Failed?.forEach((failedItem) => {
+			console.error('sendMessage failed', failedItem);
+		});
+		const deleteCommand = new DeleteMessageBatchCommand({
+			QueueUrl: sourceQueueUrl,
+			Entries: sourceMessages.filter((message) => sendResult.Successful?.some((successItem) => successItem.Id === message.MessageId)).map((message) => {
+				return {
+					Id: message.MessageId,
+					ReceiptHandle: message.ReceiptHandle
+				};
+			})
+		});
+		const deleteResult = await client.send(deleteCommand);
+		deleteResult.Failed?.forEach((failedItem) => {
+			console.error('deleteMessage failed', failedItem);
+		});
+	} catch (error: any) {
+		if (error.name === 'ExpiredToken') {
+			isAuthenticatedRef.value = false;
+		}
+	}
 }
 
 export async function getQueueAttributes(queueUrl: string): Promise<AwsQueueAttributes> {

@@ -310,7 +310,11 @@
     <v-snackbar :timeout="5000" v-model="showError" color="red" top>
       {{ errorMessage }}
     </v-snackbar>
-    <v-dialog v-model="isProgressBarActive" width="500">
+    <v-dialog
+      v-model="isProgressBarActive"
+      width="500"
+      persistent
+      >
       <v-card>
         <v-card-title class="text-h5 grey lighten-2">
           Execution in Progress
@@ -341,7 +345,7 @@ import {
 	createMessage,
 	deleteMessage,
 	getQueues,
-	moveMessage,
+	moveMessageBatch,
 	pollMessages,
 	purgeQueue
 } from '../modules/sqsClient';
@@ -494,20 +498,16 @@ export default defineComponent({
 			let numberOfProcessedItems = 0;
 			progressBarPercent.value = 0;
 			const numberOfItems = selectedMessages.value.length;
-			const currentExecutions = 20;
+			const concurrentExecutions = 10;
 
 			while (selectedMessages.value.length > 0) {
-				const executionItems = selectedMessages.value.slice(0, currentExecutions);
+				const executionItems = selectedMessages.value.slice(0, concurrentExecutions);
 				executionItems.forEach(() => selectedMessages.value.shift());
 
-				await Promise.all(
-					executionItems.map(async (message) => {
-						await moveMessage(selectedQueueUrl.value!, destinationQueue.url, message);
-						removeMessagesFromList([message]);
-						numberOfProcessedItems++;
-						progressBarPercent.value = numberOfProcessedItems / numberOfItems * 100;
-					})
-				);
+				await moveMessageBatch(selectedQueueUrl.value!, destinationQueue.url, executionItems);
+				removeMessagesFromList(executionItems);
+				numberOfProcessedItems += executionItems.length;
+				progressBarPercent.value = numberOfProcessedItems / numberOfItems * 100;
 			}
 			isProgressBarActive.value = false;
 			isLoadingMoveButton.value = false;
