@@ -337,21 +337,22 @@ import type { ComputedRef } from '@vue/composition-api';
 import {
 	computed,
 	defineComponent,
-	onMounted,
 	ref,
 	watch
 } from '@vue/composition-api';
 import {
 	createMessage,
 	deleteMessage,
-	getQueues,
 	moveMessageBatch,
 	pollMessages,
-	purgeQueue
+	purgeQueue,
+	refreshQueues,
+	selectedQueueUrl,
+	sqsQueues,
+	isLoadingQueues
 } from '../modules/sqsClient';
 import type { AwsQueue, NewSqsMessage, NewSqsMessageAttribute } from '../types/aws';
 import type { Message } from '@aws-sdk/client-sqs';
-import { currentRegionRef } from '@/modules/awsConfig';
 
 export default defineComponent({
 	setup() {
@@ -360,15 +361,13 @@ export default defineComponent({
 		const isLoadingPurgeButton = ref<boolean>(false);
 		const isLoadingCreateMessageButton = ref<boolean>(false);
 		const isLoadingMessages = ref<boolean>(false);
-		const isLoadingQueues = ref<boolean>(true);
 		const isCreateDialogOpen = ref<boolean>(false);
 		const messages = ref<Message[]>([]);
 		const selectedMessages = ref<Message[]>([]);
-		const selectedQueueUrl = ref<string | null>(null);
-		const sqsQueues = ref<AwsQueue[]>([]);
+
 		const showError = ref(false);
 		const errorMessage = ref<string>('');
-		const pollSeconds = ref<number>(5);
+		const pollSeconds = ref<number>(2);
 		const isProgressBarActive = ref<boolean>(false);
 		const progressBarPercent = ref<number>(0);
 
@@ -422,25 +421,6 @@ export default defineComponent({
 			}
 			isLoadingMessages.value = false;
 		}
-
-		async function refreshQueues(): Promise<void> {
-			isLoadingQueues.value = true;
-			sqsQueues.value = await getQueues();
-			if (
-				!sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)
-			) {
-				selectedQueueUrl.value = null;
-			}
-			isLoadingQueues.value = false;
-		}
-
-		onMounted(async () => {
-			refreshQueues();
-		});
-
-		watch(currentRegionRef, async () => {
-			refreshQueues();
-		});
 
 		selectedQueueUrl.value = localStorage.getItem('selectedQueueUrl');
 

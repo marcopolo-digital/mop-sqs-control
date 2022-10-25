@@ -1,17 +1,37 @@
 /* eslint-disable no-unused-expressions */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable id-length */
 import type { AwsQueue, AwsQueueAttributes, NewSqsMessage } from '@/types/aws';
 import type { Message } from '@aws-sdk/client-sqs';
-import { DeleteMessageBatchCommand, SendMessageBatchCommand, GetQueueAttributesCommand, SQSClient, ListQueuesCommand, ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand } from '@aws-sdk/client-sqs';
+import {
+	DeleteMessageBatchCommand, SendMessageBatchCommand, GetQueueAttributesCommand, SQSClient, ListQueuesCommand,
+	ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand
+} from '@aws-sdk/client-sqs';
+import { ref } from '@vue/composition-api';
+import { globalProfileConfigRef } from '../modules/profiles';
+import { currentRegionRef } from '../modules/awsConfig';
 
-import { awsCredentialsRef, currentRegionRef, isAuthenticatedRef } from '../modules/awsConfig';
+export const selectedQueueUrl = ref<string | null>(null);
+export const sqsQueues = ref<AwsQueue[]>([]);
+export const isLoadingQueues = ref<boolean>(true);
 
 function getSqsClient(): SQSClient {
 	return new SQSClient({
 		region: currentRegionRef.value,
-		credentials: awsCredentialsRef.value
+		credentials: globalProfileConfigRef.value?.currentProfile?.credentials
 	});
+}
+
+export async function refreshQueues(): Promise<void> {
+	console.log('refreshQueues');
+
+	isLoadingQueues.value = true;
+	sqsQueues.value = await getQueues();
+	if (
+		!sqsQueues.value.find((queue) => queue.url === selectedQueueUrl.value)
+	) {
+		selectedQueueUrl.value = null;
+	}
+	isLoadingQueues.value = false;
 }
 
 export async function getQueues(): Promise<AwsQueue[]> {
@@ -35,10 +55,8 @@ export async function getQueues(): Promise<AwsQueue[]> {
 				attributes: await getQueueAttributes(queueUrl)
 			};
 		}));
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 		return [];
 	}
 }
@@ -80,10 +98,8 @@ export async function getMessages(queueUrl: string): Promise<Message[]> {
 		}
 
 		return messagesResponse.Messages;
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 		return [];
 	}
 }
@@ -95,10 +111,8 @@ export async function purgeQueue(queueUrl: string): Promise<void> {
 	});
 	try {
 		await client.send(command);
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 	}
 }
 
@@ -110,10 +124,8 @@ export async function deleteMessage(queueUrl: string, receiptHandle: string): Pr
 	});
 	try {
 		await client.send(command);
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 	}
 }
 
@@ -134,10 +146,8 @@ export async function createMessage(queueUrl: string, message: NewSqsMessage): P
 	});
 	try {
 		await client.send(command);
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 	}
 }
 
@@ -151,10 +161,8 @@ export async function moveMessage(sourceQueueUrl: string, destinationQueueUrl: s
 	try {
 		await client.send(command);
 		await deleteMessage(sourceQueueUrl, sourceMessage.ReceiptHandle as string);
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 	}
 }
 
@@ -196,9 +204,7 @@ export async function moveMessageBatch(sourceQueueUrl: string, destinationQueueU
 			console.error('deleteMessage failed', failedItem);
 		});
 	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+		errorHandler(error);
 	}
 }
 
@@ -211,10 +217,15 @@ export async function getQueueAttributes(queueUrl: string): Promise<AwsQueueAttr
 	try {
 		const response = await client.send(command);
 		return response.Attributes as AwsQueueAttributes;
-	} catch (error: any) {
-		if (error.name === 'ExpiredToken') {
-			isAuthenticatedRef.value = false;
-		}
+	} catch (error) {
+		errorHandler(error);
 		throw error;
+	}
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function errorHandler(error: any): void {
+	if (error.name === 'ExpiredToken') {
+		// isAuthenticatedRef.value = false;
 	}
 }

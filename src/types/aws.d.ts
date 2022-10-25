@@ -39,3 +39,23 @@ export type NewSqsMessage = {
   messageAttributes: NewSqsMessageAttribute[];
   delaySeconds: number;
 };
+
+export type CredentaialsInputType = 'TEXTAREA' | 'FIELDS';
+
+type Profile = {
+  name: string;
+  id: string;
+  credentials: AwsCredentials;
+  awsAccountId: string;
+};
+
+type ProfileList = {
+  [profileId: string]: Profile;
+};
+
+type ProfileConfig = {
+  currentProfile: Profile | undefined;
+  profiles: ProfileList;
+};
+
+type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;

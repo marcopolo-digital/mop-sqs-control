@@ -4,7 +4,14 @@
     elevation="4"
     class="loginCard"
   >
+    <div class="text-h4">Create new Profile</div>
     <v-form>
+      <v-text-field
+        v-model="profileNameRef"
+        label="Profile name"
+        required
+        clearable
+      ></v-text-field>
       <v-combobox
         :items="Object.keys(awsRegions)"
         v-model="currentRegionRef"
@@ -12,6 +19,7 @@
         required
         clearable
       ></v-combobox>
+      <div class="text-h5">Manual Credentials Input</div>
 
       <v-text-field
         v-model="credentialsRef.accessKeyId"
@@ -36,12 +44,31 @@
       <v-btn
         color="success"
         class="mr-4"
-        @click="checkCredentials"
+        @click="checkCredentials('FIELDS')"
         :loading="isLoadingLoginButton"
       >
         Validate & Save
       </v-btn>
 
+      <div class="text-h5 mt-10">Or Copy AWS SSO Credentials</div>
+      <v-textarea
+        class="textareaCredentials"
+        v-model="textareaCredentialsRef"
+        :placeholder="textareaCredentialsPlaceholder"
+        clearable
+        filled
+        persistent-placeholder
+        rows="4"
+      ></v-textarea>
+
+      <v-btn
+        color="success"
+        class="mr-4"
+        @click="checkCredentials('TEXTAREA')"
+        :loading="isLoadingLoginButton"
+      >
+        Validate & Save
+      </v-btn>
     </v-form>
   </v-card>
       <v-snackbar
@@ -56,20 +83,44 @@
 </template>
 
 <script lang="ts">
-
+/* eslint-disable max-statements-per-line */
 import { defineComponent, ref } from '@vue/composition-api';
 import awsRegions from '../modules/awsRegions';
-import { currentRegionRef, defaultAwsCredentials, awsAccountIdRef, isAuthenticatedRef, awsCredentialsRef } from '../modules/awsConfig';
+import { currentRegionRef, defaultAwsCredentials } from '../modules/awsConfig';
 import { GetAccessKeyInfoCommand, STSClient } from '@aws-sdk/client-sts';
-import type { AwsCredentials } from '../types/aws';
+import type { AwsCredentials, CredentaialsInputType } from '../types/aws';
+import { createProfile } from '../modules/profiles';
 
 export default defineComponent({
 	setup() {
 		const showError = ref(false);
 		const credentialsRef = ref<AwsCredentials>(Object.assign({}, defaultAwsCredentials));
 		const isLoadingLoginButton = ref<boolean>(false);
+		const textareaCredentialsRef = ref<string>('');
+		const profileNameRef = ref<string>('');
+		const textareaCredentialsPlaceholder = 'export AWS_ACCESS_KEY_ID="ASIAVQMBL2T64R2UL3SD" \n' +
+    'export AWS_SECRET_ACCESS_KEY="UywKsS+CZU+buFPfA5Qg+FYsSLW5JG5" \n' +
+    'export AWS_SESSION_TOKEN="IQoJ8J4562luXdJH/////wE2GV15NnR3YWw"';
 
-		async function checkCredentials(): Promise<void> {
+		function parseTextarea(): void {
+			const content = textareaCredentialsRef.value;
+			const rows = content.split('\n');
+			rows.forEach((row) => {
+				const rowParts = row.split(' ')[1].split('=');
+				const key = rowParts[0];
+				const value = rowParts[1].replaceAll('"', '');
+				switch (key) {
+					case 'AWS_ACCESS_KEY_ID': credentialsRef.value.accessKeyId = value; break;
+					case 'AWS_SECRET_ACCESS_KEY': credentialsRef.value.secretAccessKey = value; break;
+					case 'AWS_SESSION_TOKEN': credentialsRef.value.sessionToken = value; break;
+				}
+			});
+		}
+
+		async function checkCredentials(inputType: CredentaialsInputType): Promise<void> {
+			if (inputType === 'TEXTAREA') {
+				parseTextarea();
+			}
 			isLoadingLoginButton.value = true;
 			const stsClient = new STSClient({
 				region: currentRegionRef.value,
@@ -80,10 +131,15 @@ export default defineComponent({
 			});
 			try {
 				const stsResult = await stsClient.send(stsCommand);
-				awsCredentialsRef.value = credentialsRef.value;
-				awsAccountIdRef.value = stsResult.Account;
-				credentialsRef.value = defaultAwsCredentials;
-				isAuthenticatedRef.value = true;
+				createProfile({
+					name: profileNameRef.value ?? 'New Profile',
+					credentials: credentialsRef.value,
+					awsAccountId: stsResult.Account as string
+				});
+
+				credentialsRef.value = Object.assign({}, defaultAwsCredentials);
+				textareaCredentialsRef.value = '';
+				profileNameRef.value = '';
 			} catch (error) {
 				console.log(error);
 				showError.value = true;
@@ -97,7 +153,10 @@ export default defineComponent({
 			currentRegionRef,
 			showError,
 			credentialsRef,
-			isLoadingLoginButton
+			isLoadingLoginButton,
+			textareaCredentialsRef,
+			textareaCredentialsPlaceholder,
+			profileNameRef
 		};
 	}
 });
@@ -108,6 +167,9 @@ export default defineComponent({
 .loginCard {
   padding: 50px;
   margin: 50px;
-  min-width: 500px;
+  min-width: 800px;
+}
+.textareaCredentials{
+  font-size: 14px;
 }
 </style>

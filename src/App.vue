@@ -19,9 +19,34 @@
           class="ma-2 ml-5"
           color="orange"
         >
-          {{ `AccountId: ${awsAccountIdRef}` }}
+          {{ `AccountId: ${ accountId }` }}
         </v-chip>
       </div>
+      <span>
+        <v-combobox
+          :items="Object.values(globalProfileConfigRef.profiles)"
+          v-model="globalProfileConfigRef.currentProfile"
+          label="Profile"
+          item-text="name"
+          item-value="id"
+          outlined
+          dense
+          class="mt-6 ml-5"
+          color="teal"
+        ></v-combobox>
+      </span>
+      <v-btn
+        elevation="2"
+        @click="removeCurrentProfile"
+        outlined
+        class="ml-3"
+      >Remove Profile</v-btn>
+      <v-btn
+        elevation="2"
+        @click="globalProfileConfigRef.currentProfile = undefined"
+        outlined
+        class="ml-3"
+      >Add Profile</v-btn>
       <span>
         <v-combobox
           :items="Object.keys(awsRegions)"
@@ -36,13 +61,13 @@
       <v-spacer></v-spacer>
       <v-btn
         elevation="2"
-        @click="logout"
+        @click="removeProfileConfig"
         outlined
       >Logout</v-btn>
     </v-app-bar>
     <v-main>
       <MessageControl
-        v-if="isAuthenticatedRef"
+        v-if="globalProfileConfigRef.currentProfile"
       />
       <LoginForm
        v-else
@@ -55,9 +80,10 @@
 <script lang="ts">
 import LoginForm from './components/LoginForm.vue';
 import MessageControl from './components/MessageControl.vue';
-import { defineComponent } from '@vue/composition-api';
-import { isAuthenticatedRef, awsAccountIdRef, currentRegionRef, awsCredentialsRef, defaultAwsCredentials } from './modules/awsConfig';
+import { computed, defineComponent } from '@vue/composition-api';
+import { currentRegionRef } from './modules/awsConfig';
 import awsRegions from './modules/awsRegions';
+import { removeCurrentProfile, removeProfileConfig, globalProfileConfigRef } from './modules/profiles';
 
 export default defineComponent({
 	name: 'SQSControl',
@@ -66,18 +92,18 @@ export default defineComponent({
 		MessageControl
 	},
 	setup() {
-		function logout() {
-			localStorage.removeItem('awsCredentials');
-			awsCredentialsRef.value = defaultAwsCredentials;
-			isAuthenticatedRef.value = false;
-		}
+		const accountId = computed(() => {
+			console.debug('computed accountId triggered', globalProfileConfigRef.value.currentProfile?.awsAccountId);
+			return globalProfileConfigRef.value.currentProfile?.awsAccountId ?? 'None';
+		});
 
 		return {
-			isAuthenticatedRef,
 			awsRegions,
-			awsAccountIdRef,
 			currentRegionRef,
-			logout
+			removeProfileConfig,
+			globalProfileConfigRef,
+			accountId,
+			removeCurrentProfile
 		};
 	}
 
