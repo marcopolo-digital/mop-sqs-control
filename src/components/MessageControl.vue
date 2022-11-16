@@ -54,7 +54,7 @@
     <v-row align="center">
       <v-col>
         <v-data-table
-          :items="messages"
+          :items="expandedMessages"
           item-key="MessageId"
           :headers="messageTableHeaders"
           class="elevation-3"
@@ -388,6 +388,10 @@ export default defineComponent({
 
 		const messageTableHeaders = [
 			{
+				text: 'Lambda',
+				value: 'Lambda'
+			},
+			{
 				text: 'MessageId',
 				value: 'MessageId'
 			},
@@ -541,6 +545,16 @@ export default defineComponent({
 			});
 		});
 
+		const expandedMessages = computed(() => {
+			return messages.value.map((message) => {
+				const payload = JSON.parse(message.Body ?? '{}');
+				return {
+					Lambda: payload.requestContext?.functionArn?.split(':')[6],
+					...message
+				};
+			});
+		});
+
 		return {
 			btnCreateNewMessage,
 			btnDeleteMessages,
@@ -571,7 +585,8 @@ export default defineComponent({
 			queueSelectItems,
 			isJson,
 			isProgressBarActive,
-			progressBarPercent
+			progressBarPercent,
+			expandedMessages
 		};
 	}
 });
