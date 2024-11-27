@@ -188,7 +188,7 @@ export async function moveMessageBatch(sourceQueueUrl: string, destinationQueueU
 	try {
 		let sendResult: SendMessageBatchCommandOutput;
 		try {
-			const sendResult = await client.send(sendCommand);
+			sendResult = await client.send(sendCommand);
 			sendResult.Failed?.forEach((failedItem) => {
 				console.error('sendMessage failed', failedItem);
 			});
