@@ -1,82 +1,74 @@
 <template>
-<v-layout justify-center>
-  <v-card
-    elevation="4"
-    class="loginCard"
-  >
-    <div class="text-h4">Create new Profile</div>
-    <v-form>
-      <v-text-field
-        v-model="profileNameRef"
-        label="Profile name"
-        required
-        clearable
-      ></v-text-field>
-      <v-combobox
-        :items="Object.keys(awsRegions)"
-        v-model="currentRegionRef"
-        label="defaultRegion"
-        required
-        clearable
-      ></v-combobox>
-      <div class="text-h5">Manual Credentials Input</div>
+  <v-layout justify-center>
+    <v-card elevation="4" class="loginCard">
+      <div class="text-h4">Create new Profile</div>
+      <v-form>
+        <v-text-field
+          v-model="profileNameRef"
+          label="Profile name"
+          required
+          clearable
+        ></v-text-field>
+        <v-combobox
+          :items="Object.keys(awsRegions)"
+          v-model="currentRegionRef"
+          label="defaultRegion"
+          required
+          clearable
+        ></v-combobox>
+        <div class="text-h5">Manual Credentials Input</div>
 
-      <v-text-field
-        v-model="credentialsRef.accessKeyId"
-        label="accessKeyId"
-        required
-        clearable
-      ></v-text-field>
+        <v-text-field
+          v-model="credentialsRef.accessKeyId"
+          label="accessKeyId"
+          required
+          clearable
+        ></v-text-field>
 
-      <v-text-field
-        v-model="credentialsRef.secretAccessKey"
-        label="secretAccessKey"
-        required
-        clearable
-      ></v-text-field>
+        <v-text-field
+          v-model="credentialsRef.secretAccessKey"
+          label="secretAccessKey"
+          required
+          clearable
+        ></v-text-field>
 
-      <v-text-field
-        v-model="credentialsRef.sessionToken"
-        label="sessionToken"
-        clearable
-      ></v-text-field>
+        <v-text-field
+          v-model="credentialsRef.sessionToken"
+          label="sessionToken"
+          clearable
+        ></v-text-field>
 
-      <v-btn
-        color="success"
-        class="mr-4"
-        @click="checkCredentials('FIELDS')"
-        :loading="isLoadingLoginButton"
-      >
-        Validate & Save
-      </v-btn>
+        <v-btn
+          color="success"
+          class="mr-4"
+          @click="checkCredentials('FIELDS')"
+          :loading="isLoadingLoginButton"
+        >
+          Validate & Save
+        </v-btn>
 
-      <div class="text-h5 mt-10">Or Copy AWS SSO Credentials</div>
-      <v-textarea
-        class="textareaCredentials"
-        v-model="textareaCredentialsRef"
-        :placeholder="textareaCredentialsPlaceholder"
-        clearable
-        filled
-        persistent-placeholder
-        rows="4"
-      ></v-textarea>
+        <div class="text-h5 mt-10">Or Copy AWS SSO Credentials</div>
+        <v-textarea
+          class="textareaCredentials"
+          v-model="textareaCredentialsRef"
+          :placeholder="textareaCredentialsPlaceholder"
+          clearable
+          filled
+          persistent-placeholder
+          rows="4"
+        ></v-textarea>
 
-      <v-btn
-        color="success"
-        class="mr-4"
-        @click="checkCredentials('TEXTAREA')"
-        :loading="isLoadingLoginButton"
-      >
-        Validate & Save
-      </v-btn>
-    </v-form>
-  </v-card>
-      <v-snackbar
-      :timeout="3000"
-      v-model="showError"
-      color="red"
-      top
-    >
+        <v-btn
+          color="success"
+          class="mr-4"
+          @click="checkCredentials('TEXTAREA')"
+          :loading="isLoadingLoginButton"
+        >
+          Validate & Save
+        </v-btn>
+      </v-form>
+    </v-card>
+    <v-snackbar :timeout="3000" v-model="showError" color="red" top>
       Invalid Credentials!
     </v-snackbar>
   </v-layout>
@@ -97,7 +89,7 @@ export default defineComponent({
 		const credentialsRef = ref<AwsCredentials>(Object.assign({}, defaultAwsCredentials));
 		const isLoadingLoginButton = ref<boolean>(false);
 		const textareaCredentialsRef = ref<string>('');
-		const profileNameRef = ref<string>('');
+		const profileNameRef = ref<string>('Default');
 		const textareaCredentialsPlaceholder = 'export AWS_ACCESS_KEY_ID="ASIAVQMBL2T64R2UL3SD" \n' +
     'export AWS_SECRET_ACCESS_KEY="UywKsS+CZU+buFPfA5Qg+FYsSLW5JG5" \n' +
     'export AWS_SESSION_TOKEN="IQoJ8J4562luXdJH/////wE2GV15NnR3YWw"';
@@ -160,7 +152,6 @@ export default defineComponent({
 		};
 	}
 });
-
 </script>
 
 <style scoped>
@@ -169,7 +160,7 @@ export default defineComponent({
   margin: 50px;
   min-width: 800px;
 }
-.textareaCredentials{
+.textareaCredentials {
   font-size: 14px;
 }
 </style>

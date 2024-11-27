@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable max-depth */
 /* eslint-disable no-unused-expressions */
 /* eslint-disable id-length */
 import type { AwsQueue, AwsQueueAttributes, NewSqsMessage } from '@/types/aws';
-import type { Message } from '@aws-sdk/client-sqs';
+import type { Message, SendMessageBatchCommandOutput } from '@aws-sdk/client-sqs';
 import {
 	DeleteMessageBatchCommand, SendMessageBatchCommand, GetQueueAttributesCommand, SQSClient, ListQueuesCommand,
 	ReceiveMessageCommand, PurgeQueueCommand, DeleteMessageCommand, SendMessageCommand
@@ -141,7 +143,6 @@ export async function createMessage(queueUrl: string, message: NewSqsMessage): P
 				StringValue: message.value
 			};
 			return result;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		}, {} as any)
 	});
 	try {
@@ -180,30 +181,59 @@ export async function moveMessageBatch(sourceQueueUrl: string, destinationQueueU
 						StringValue: attributeValue
 					};
 					return result;
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				}, {} as any)
 			};
 		})
 	});
 	try {
-		const sendResult = await client.send(sendCommand);
-		sendResult.Failed?.forEach((failedItem) => {
-			console.error('sendMessage failed', failedItem);
-		});
+		let sendResult: SendMessageBatchCommandOutput;
+		try {
+			const sendResult = await client.send(sendCommand);
+			sendResult.Failed?.forEach((failedItem) => {
+				console.error('sendMessage failed', failedItem);
+			});
+		} catch (error) {
+			console.error('sendMessageBatch failed, start single processing', error);
+			sendResult = {
+				$metadata: {},
+				Successful: [],
+				Failed: []
+			};
+			for (const entry of sendCommand.input.Entries ?? []) {
+				try {
+					const command = new SendMessageCommand({
+						QueueUrl: destinationQueueUrl,
+						MessageBody: entry.MessageBody,
+						MessageAttributes: entry.MessageAttributes
+					});
+					const singleResult = await client.send(command);
+					sendResult.Successful?.push({
+						Id: entry.Id,
+						MessageId: singleResult.MessageId,
+						MD5OfMessageBody: singleResult.MD5OfMessageBody
+					});
+				} catch (error) {
+					console.error('sendMessageSingle failed', error);
+				}
+			}
+		}
+
 		const deleteCommand = new DeleteMessageBatchCommand({
 			QueueUrl: sourceQueueUrl,
-			Entries: sourceMessages.filter((message) => sendResult.Successful?.some((successItem) => successItem.Id === message.MessageId)).map((message) => {
-				return {
-					Id: message.MessageId,
-					ReceiptHandle: message.ReceiptHandle
-				};
-			})
+			Entries: sourceMessages
+				.filter((message) => sendResult.Successful?.some((successItem) => successItem.Id === message.MessageId))
+				.map((message) => {
+					return {
+						Id: message.MessageId,
+						ReceiptHandle: message.ReceiptHandle
+					};
+				})
 		});
 		const deleteResult = await client.send(deleteCommand);
 		deleteResult.Failed?.forEach((failedItem) => {
 			console.error('deleteMessage failed', failedItem);
 		});
-	} catch (error: any) {
+	} catch (error: unknown) {
 		errorHandler(error);
 	}
 }
@@ -223,7 +253,6 @@ export async function getQueueAttributes(queueUrl: string): Promise<AwsQueueAttr
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function errorHandler(error: any): void {
 	if (error.name === 'ExpiredToken') {
 		// isAuthenticatedRef.value = false;
